@@ -1,0 +1,19 @@
+# user space files
+.vscode/
+
+# env files
+.env
+.env.local
+
+# build files
+dist/
+build/
+*.o
+*.so
+*.a
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+

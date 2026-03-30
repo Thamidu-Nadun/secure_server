@@ -3,8 +3,8 @@
 
 all: banner
 	@echo "Building server and client..."
-	@gcc server.c -o server
-	@gcc client.c -o client
+	@gcc server.c -o dist/server
+	@gcc client.c -o dist/client
 	@echo "Compilation complete."
 
 banner:
