@@ -1,5 +1,4 @@
 #include "util/mem_util.c"
-#include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 

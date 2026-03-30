@@ -1,7 +1,6 @@
 #include "util/mem_util.c"
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <string.h>
 
 #define PORT 8000
 #define BUFFER_SIZE 1024
