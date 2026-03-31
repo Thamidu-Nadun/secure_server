@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
+#include "../types/command.h"
 
-void parser(char* str_ptr, int size){
+void line_parser(char* str_ptr, int size){
     char* lines = strtok(str_ptr, ";");
 
     while (lines != NULL){
@@ -9,6 +10,16 @@ void parser(char* str_ptr, int size){
         lines = strtok(NULL, ";");
     }
 }
+
+/**
+ * This function parse one line string and if there is a command, 
+ * command and args will be returned. Otherwise, it will return NULL.
+ * 
+ * @param str_ptr the string to parse
+ * @return Command* the parsed command, or NULL if no command is found
+ * 
+ */
+Command command_parser(char* str_ptr){}
 
 int main(){
     char msg1[] = "LOGIN: user1";
@@ -24,5 +35,5 @@ int main(){
     char* msg = strcat(str, str2);
     printf("Combined message: %s\n", msg);
 
-    parser(msg, strlen(msg));
+    line_parser(msg, strlen(msg));
 }
