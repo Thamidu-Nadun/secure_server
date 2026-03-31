@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "../types/command.h"
+#include "../types/general_types.h"
 
 void line_parser(char* str_ptr, int size){
     char* lines = strtok(str_ptr, ";");
