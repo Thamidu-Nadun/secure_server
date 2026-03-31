@@ -7,17 +7,30 @@
 
 
 int handle_client(int client){
-    char* buffer = allocate_mem(BUFFER_SIZE);
+    size_t capacity = BUFFER_SIZE, total = 0;
+    char* buffer = allocate_mem(capacity);
+    char temp[BUFFER_SIZE];
     ssize_t bytes_recv;
-    while ((bytes_recv = recv(client, buffer, BUFFER_SIZE - 1, 0)) > 0) {
-        buffer[bytes_recv] = '\0';
-        printf("Received: %s\n", buffer);
-    }
-    if (bytes_recv < 0) {
-        perror("error receiving data");
+
+    while ((bytes_recv = recv(client, temp, sizeof(temp), 0)) > 0){
+        if (total + bytes_recv + 1 > capacity){
+            while (total + bytes_recv + 1 > capacity) capacity *= 2;
+            buffer = reallocate_mem(buffer, capacity);
+        }
+        memcpy(buffer + total, temp, bytes_recv);
+        total += bytes_recv;
     }
 
+    if (bytes_recv < 0){
+        perror("error receiving data");
+        free(buffer);
+        return EXIT_FAILURE;
+    }
+
+    buffer[total] = '\0';
+    printf("Received message: %s\n", buffer);
     free(buffer);
+    
     return EXIT_SUCCESS;
 }
 

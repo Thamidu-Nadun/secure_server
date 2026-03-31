@@ -8,6 +8,7 @@
 # build files
 dist/
 build/
+**/out
 *.o
 *.so
 *.a
