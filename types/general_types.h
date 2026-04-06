@@ -1,6 +1,6 @@
 struct Command {
-    char *command_name;
-    void *args;
+    char *command_name[100]; // command name
+    void *args[256]; // command arguments
 } typedef Command;
 
 struct Response {
@@ -12,3 +12,8 @@ struct Response {
 enum ServerResponseTypes{
     OK, ERR
 } typedef ServerResponseTypes;
+
+struct User{
+    char username[256];
+    char password[256];
+} typedef User;
