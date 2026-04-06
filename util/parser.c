@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../types/general_types.h"
+#include "db.c"
 
 /**
  * This function parse one line string and if there is a command, 
