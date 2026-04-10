@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include "../types/general_types.h"
 #include "db.c"
+#include "logger.c"
+#include "token.h"
 
 /**
  * This function parse one line string and if there is a command, 
@@ -26,6 +28,8 @@ Command* parser(char* str_ptr){
     Command* commands = malloc(sizeof(Command) * 5); // max 5 commands
     int cmd_count = 0;
 
+    printf("Parsing message: %s\n", str_ptr);
+
     char* lines = strtok(str_ptr, ";");
     while (lines != NULL){
         printf("Line: %s\n", lines);
@@ -42,42 +46,113 @@ Command* parser(char* str_ptr){
     return commands;
 }
 
-void command_handler(Command* commands){
+int command_handler(Command* commands, char* client_ip, uint16_t port){
     for (int i = 0; i < 5; i++){
         if (commands[i].command_name[0] == 0) continue; // empty command
+
         char* cmd_name = commands[i].command_name;
         char* cmd_args = (char*)commands[i].args;
         printf("Handling command: %s with args: %s\n", cmd_name, cmd_args);
 
+        // ****** Command handling logic ****** //
+
         if (strcmp(cmd_name, "LOGIN") == 0){
             printf("Processing LOGIN command with args: %s\n", cmd_args);
-        } else if (strcmp(cmd_name, "REGISTER") == 0){
+            
+            char username[256], password[256];
+            sscanf(cmd_args, "%s %s", username, password);
+
+            // 1. get user,
+            User* user = get_user(username);
+            if (user == NULL) {
+                printf("User not found: %s\n", cmd_args);
+                return EXIT_FAILURE;
+            }
+            // 2. check with password,
+            if (strcmp(user->password, password) != 0) {
+                printf("Incorrect password for user: %s\n", cmd_args);
+                free(user);
+                return EXIT_FAILURE;
+            }
+            // 3. if success, log the login event
+            char log_msg[] = "User logged in successfully";
+            if (client_log(client_ip, port, log_msg, strlen(log_msg)) != EXIT_SUCCESS) {
+                fprintf(stderr, "Error logging client event\n");
+                free(user);
+                return EXIT_FAILURE;
+            }
+            // 4. store token and return token to client
+            FILE *file = fopen("tokens.txt", "a");
+            if (file == NULL) {
+                perror("Could not open tokens file");
+                free(user);
+                return EXIT_FAILURE;
+            }
+            int chars = 6;
+            char token_str[2* chars + 1];
+            generate_token(token_str, sizeof(token_str));
+            fprintf(file, "%s:%s\n", user->username, token_str);
+            fclose(file);
+            printf("Generated token for user '%s': %s\n", user->username, token_str);
+            free(user);
+            return EXIT_SUCCESS;
+        }
+        else if (strcmp(cmd_name, "REGISTER") == 0)
+        {
             printf("Processing REGISTER command with args: %s\n", cmd_args);
-        } else if (strcmp(cmd_name, "LOGOUT") == 0){
+
+            char username[100], password[100];
+            sscanf(cmd_args, "%s %s", username, password);
+            if (add_user(username, password) == EXIT_SUCCESS) {
+                printf("User '%s' registered successfully.\n", username);
+                return EXIT_SUCCESS;
+            } else {
+                printf("Failed to register user '%s'.\n", username);
+                return EXIT_FAILURE;
+            }
+        }
+        else if (strcmp(cmd_name, "LOGOUT") == 0)
+        {
             printf("Processing LOGOUT command with args: %s\n", cmd_args);
-        } else if (strcmp(cmd_name, "MSG") == 0){
+            char username[256];
+            sscanf(cmd_args, "%s", username);
+            if (logout_user(username) != EXIT_SUCCESS) {
+                printf("Failed to logout user '%s'.\n", username);
+                return EXIT_FAILURE;
+            }
+            printf("User '%s' logged out successfully.\n", username);
+            return EXIT_SUCCESS;
+        }
+        else if (strcmp(cmd_name, "MSG") == 0)
+        {
             printf("Processing MSG command with args: %s\n", cmd_args);
-        } else {
+            printf("Received message: %s\n", cmd_args);
+
+            client_log(client_ip, port, cmd_args, strlen(cmd_args));
+            return EXIT_SUCCESS;
+        }
+        else
+        {
             printf("Unknown command: %s\n", cmd_name);
         }
     }
     free(commands);
 }
 
-int main(){
-    char msg1[] = "LOGIN: user1 1234";
-    char msg2[] = "MSG: Hello, World";
+// int main(){
+//     char msg1[] = "LOGIN: user1 1234";
+//     char msg2[] = "MSG: Hello, World";
 
-    char str[sizeof(msg1) + 10];
-    char str2[sizeof(msg2) + 10];
+//     char str[sizeof(msg1) + 10];
+//     char str2[sizeof(msg2) + 10];
 
-    char format[] = "LEN: %lu %s;";
-    sprintf(str, format, strlen(msg1), msg1);
-    sprintf(str2, format, strlen(msg2), msg2);
+//     char format[] = "LEN: %lu %s;";
+//     sprintf(str, format, strlen(msg1), msg1);
+//     sprintf(str2, format, strlen(msg2), msg2);
 
-    char* msg = strcat(str, str2);
-    printf("Combined message: %s\n", msg);
+//     char* msg = strcat(str, str2);
+//     printf("Combined message: %s\n", msg);
 
-    Command* commands = parser(msg);
-    command_handler(commands);
-}
+//     Command* commands = parser(msg);
+//     command_handler(commands);
+// }

@@ -9,7 +9,7 @@
 
 void lock_db(int fd);
 void unlock_db(int fd);
-void add_user(const char* username, const char* password);
+int add_user(const char* username, const char* password);
 User* get_user(const char* username);
 
 void lock_db(int fd){
@@ -32,11 +32,11 @@ void unlock_db(int fd){
     fcntl(fd, F_SETLK, &lock); // Release the lock
 }
 
-void add_user(const char* username, const char* password) {
+int add_user(const char* username, const char* password) {
     FILE* file = fopen(DB_PATH, "a");
     if (file == NULL) {
         perror("Could not open database file");
-        return;
+        return EXIT_FAILURE;
     }
     lock_db(fileno(file)); // Lock the file for writing
 
@@ -46,19 +46,20 @@ void add_user(const char* username, const char* password) {
         free(existing_user);
         unlock_db(fileno(file)); 
         fclose(file);
-        return;
+        return EXIT_FAILURE;
     }
     fprintf(file, "%s:%s\n", username, password);
     printf("User '%s' added successfully.\n", username);
     unlock_db(fileno(file)); // Unlock the file
-    fclose(file);    
+    fclose(file);
+    return EXIT_SUCCESS;
 }
 
 /**
  * Retrieves a user from the database by username
  * @param username The username to search for
  * @return A pointer to a User struct if found, or NULL if not found
- * @note free the returned User struct | cuz return pointer to memory
+ * @note free the returned User struct
  */
 User* get_user(const char* username){
     FILE* file = fopen(DB_PATH, "r");
@@ -95,16 +96,46 @@ User* get_user(const char* username){
     return NULL; // User not found
 }
 
-int main() {
-    add_user("user1", "password1");
-    add_user("user2", "password2");
-
-    User* u1 = get_user("user1");
-    if (u1) {
-        printf("Retrieved user: %s with password: %s\n", u1->username, u1->password);
-        free(u1);
-    } else {
-        printf("User not found.\n");
+int logout_user(const char* username) {
+    // 1. find user in tokens.txt
+    // 2. remove the line containing the user
+    FILE* file = fopen("tokens.txt", "r");
+    FILE* temp = fopen("tokens-temp.txt", "w");
+    if (!file || !temp) {
+        perror("Could not open tokens file");
+        return EXIT_FAILURE;
     }
-    return 0;
+    char line[1024];
+    while (fgets(line, sizeof(line), file)) {
+        if (strstr(line, username) == NULL) {
+            fputs(line, temp);
+        }
+    }
+    fclose(file);
+    fclose(temp);
+
+    if (remove("tokens.txt") != 0) {
+        perror("Could not remove tokens file");
+        return EXIT_FAILURE;
+    }
+
+    if (rename("tokens-temp.txt", "tokens.txt") != 0) {
+        perror("Could not rename temp tokens file");
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
 }
+
+// int main() {
+//     add_user("user1", "password1");
+//     add_user("user2", "password2");
+
+//     User* u1 = get_user("user1");
+//     if (u1) {
+//         printf("Retrieved user: %s with password: %s\n", u1->username, u1->password);
+//         free(u1);
+//     } else {
+//         printf("User not found.\n");
+//     }
+//     return 0;
+// }

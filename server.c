@@ -1,12 +1,19 @@
 #include "util/mem_util.c"
 #include <unistd.h>
 #include <arpa/inet.h>
+#include "util/parser.c"
 
 #define PORT 8000
 #define BUFFER_SIZE 1024
 
 
-int handle_client(int client){
+int handle_client(int client, struct sockaddr_in client_addr){
+
+    char client_ip[INET_ADDRSTRLEN];
+    u_int16_t port = htons(client_addr.sin_port);
+    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+    printf("Client connected: %s:%d\n", client_ip, ntohs(client_addr.sin_port));
+
     size_t capacity = BUFFER_SIZE, total = 0;
     char* buffer = allocate_mem(capacity);
     char temp[BUFFER_SIZE];
@@ -29,6 +36,18 @@ int handle_client(int client){
 
     buffer[total] = '\0';
     printf("Received message: %s\n", buffer);
+
+    Command* commands =  parser(buffer);
+    int handler_result = command_handler(commands, client_ip, port);
+    if (handler_result != EXIT_SUCCESS) {
+        fprintf(stderr, "Error handling commands\n");
+        free(buffer);
+        char error_msg[] = "Error processing commands";
+        send(client, error_msg, strlen(error_msg), 0);
+        return EXIT_FAILURE;
+    }
+    char msg[] = "Command processed successfully";
+    send(client, msg, strlen(msg), 0);
     free(buffer);
     
     return EXIT_SUCCESS;
@@ -61,15 +80,17 @@ int main(){
     printf("Server is listening on port %d...\n", PORT);
 
     while (1){
+        struct sockaddr_in client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
         int clientfd;
-        if ((clientfd = accept(sockfd, NULL, NULL)) < 0) {
+        if ((clientfd = accept(sockfd, (struct sockaddr*)&client_addr, &client_addr_len)) < 0) {
             perror("couldn't accept the connection");
             continue;
         }
 
         if (fork() == 0){
             close(sockfd);
-            if (handle_client(clientfd) != EXIT_SUCCESS) {
+            if (handle_client(clientfd, client_addr) != EXIT_SUCCESS) {
                 fprintf(stderr, "Error handling client\n");
             }
             close(clientfd);

@@ -1,6 +1,9 @@
+#ifndef GENERAL_TYPES_H
+#define GENERAL_TYPES_H
+
 struct Command {
-    char *command_name[100]; // command name
-    void *args[256]; // command arguments
+    char command_name[100]; // command name
+    char args[256]; // command arguments
 } typedef Command;
 
 struct Response {
@@ -17,3 +20,5 @@ struct User{
     char username[256];
     char password[256];
 } typedef User;
+
+#endif

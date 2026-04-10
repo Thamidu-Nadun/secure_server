@@ -6,9 +6,67 @@
 #define PORT 8000
 #define BUFFER_SIZE 1024
 
-#define HEADER "LEN: %d PAYLOAD: %s"
+#define HEADER "LEN: %d %s"
 
 int main(){
+    /**
+     * handling options;
+     * login = 0,
+     * register = 1,
+     * logout = 2,
+     * send message = 3
+     */
+    printf("Choose an option:\n");
+    printf("0: LOGIN\n");
+    printf("1: REGISTER\n");
+    printf("2: LOGOUT\n");
+    printf("3: SEND MESSAGE\n");
+    
+    char *payload = allocate_mem(BUFFER_SIZE);
+    int option;
+    printf("option> ");
+    scanf("%d", &option);
+    getchar();
+    char username[256], password[256];
+    
+
+    switch (option){
+    case 0:
+        printf("====LOGIN====\n");
+        printf("Enter username: ");
+        scanf("%s", username);
+        printf("Enter password: ");
+        scanf("%s", password);
+        snprintf(payload, BUFFER_SIZE, "LOGIN: %s %s", username, password);
+        break;
+    case 1:
+        printf("====REGISTER====\n");
+        printf("Enter username: ");
+        scanf("%s", username);
+        printf("Enter password: ");
+        scanf("%s", password);
+        snprintf(payload, BUFFER_SIZE, "REGISTER: %s %s", username, password);
+        break;
+    case 2:
+        printf("====LOGOUT====\n");
+        printf("Enter username: ");
+        scanf("%s", username);
+        snprintf(payload, BUFFER_SIZE, "LOGOUT: %s", username);
+        break;
+    case 3:
+        printf("====SEND MESSAGE====\n");
+        char message[256];
+        printf("Enter message: ");
+        scanf(" %[^\n]", message);
+        snprintf(payload, BUFFER_SIZE, "MSG: %s", message);
+        break;
+    default:
+        printf("Invalid option\n");
+        free(payload);
+        exit(EXIT_FAILURE);
+    }
+
+    // socket setup
     struct sockaddr_in srv;
     srv.sin_family = AF_INET;
     srv.sin_port = htons(PORT);
@@ -30,19 +88,6 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    char *payload = malloc(BUFFER_SIZE);
-    if (payload == NULL) {
-        perror("couldn't allocate payload buffer");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Enter the payload to send: ");
-    if (fgets(payload, BUFFER_SIZE, stdin) == NULL) {
-        perror("error reading input");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
 
     char *buffer = allocate_mem(BUFFER_SIZE);
     int payload_len = strlen(payload);
@@ -50,9 +95,20 @@ int main(){
     snprintf(buffer, BUFFER_SIZE, HEADER, payload_len, payload);
 
     send(sockfd, buffer, strlen(buffer), 0);
+    shutdown(sockfd, SHUT_WR);
+
+    memset(buffer, 0, BUFFER_SIZE);
+    ssize_t bytes_recv = recv(sockfd, buffer, BUFFER_SIZE - 1, 0);
+    if (bytes_recv < 0){
+        perror("error receiving data");
+        free(buffer);
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+    buffer[bytes_recv] = '\0';
+    printf("Server response: %s\n", buffer);
 
     free(buffer);
     close(sockfd);
-
     return EXIT_SUCCESS;
 }
