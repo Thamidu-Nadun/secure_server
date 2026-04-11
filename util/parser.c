@@ -157,6 +157,8 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
             printf("Processing LOGOUT command with args: %s\n", cmd_args);
             char username[256];
             sscanf(cmd_args, "%s", username);
+            
+            // 1. logout user
             if (logout_user(username) != EXIT_SUCCESS) {
                 printf("Failed to logout user '%s'.\n", username);
                 char log_msg_format[] = "Failed logout attempt for user '(%s)'";
@@ -166,8 +168,14 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
                 return EXIT_FAILURE;
             }
             printf("User '%s' logged out successfully.\n", username);
-            client_log(client_ip, port, "User logged out successfully", strlen("User logged out successfully"));
+            
+            // 2. log the logout event
+            char log_msg_format[] = "User logged out successfully '(%s)'";
+            char log_msg[sizeof(log_msg_format) + strlen(username)];
+            sprintf(log_msg, log_msg_format, username);
+            client_log(client_ip, port, log_msg, strlen(log_msg));
 
+            // 3. send response to client
             char response_format[] = "OK: 1;SID: 1042; User '%s' logged out successfully";
             char response[sizeof(response_format) + strlen(username)];
             sprintf(response, response_format, username);

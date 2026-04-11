@@ -91,10 +91,13 @@ def main():
         payload = f'LOGOUT: {username}'
     elif option == 3:
         print("====SEND MESSAGE====")
+        sys.stdout.write("Enter token: ")
+        sys.stdout.flush()
+        token = input()
         sys.stdout.write("Enter message: ")
         sys.stdout.flush()
         message = input()
-        payload = f'MSG: {message}'
+        payload = f'MSG: token:{token} {message}'
     else:
         print("Invalid option")
         sys.exit(1)
