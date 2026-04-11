@@ -59,10 +59,12 @@ int main(){
         break;
     case 3:
         printf("====SEND MESSAGE====\n");
-        char message[256];
+        char message[256], token[10];
+        printf("Enter token: ");
+        scanf("%s", token);
         printf("Enter message: ");
         scanf(" %[^\n]", message);
-        snprintf(payload, BUFFER_SIZE, "MSG: %s", message);
+        snprintf(payload, BUFFER_SIZE, "MSG: token:%s %s", token, message);
         break;
     default:
         printf("Invalid option\n");

@@ -1,10 +1,11 @@
 .PHONY: all banner clean
 
+CFLAGS = -lssl -lcrypto
 
 all: banner
 	@echo "Building server and client..."
-	@gcc server.c -o dist/server
-	@gcc client.c -o dist/client
+	@gcc server.c -o dist/server $(CFLAGS)
+	@gcc client.c -o dist/client $(CFLAGS)
 	@echo "Compilation complete."
 
 banner:

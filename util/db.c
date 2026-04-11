@@ -3,6 +3,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 #include "../types/general_types.h"
 #include "secure.c"
 #include "token.h"
@@ -135,16 +136,43 @@ int logout_user(const char* username) {
     return EXIT_SUCCESS;
 }
 
-// int main() {
-//     add_user("user1", "password1");
-//     add_user("user2", "password2");
+/**
+ * Retrieves a user from the database by token
+ * @param token The token to search for
+ * @return A pointer to a User struct if found and token is valid, or NULL if not found or expired
+ * @note free the returned User struct
+ */
+User* get_user_by_token(const char* token){
+    FILE* file = fopen("tokens.txt", "r");
+    if (!file){
+        perror("Could not open tokens file");
+        return NULL;
+    }
+    char line[1024];
+    while (fgets(line, sizeof(line), file)) {
+        char user_buff[256], token_buff[256];
+        long expiry_time;
+        if (sscanf(line, "%[^:]:%[^:]:%ld", user_buff, token_buff, &expiry_time) == 3) {
+            if (strcmp(token_buff, token) == 0){
+                time_t now = time(NULL);
+                if (now > expiry_time) {
+                    printf("Token expired for user '%s'\n", user_buff);
+                    fclose(file);
+                    logout_user(user_buff); // remove expired user's token
+                    return NULL;
+                }
+                User* user = malloc(sizeof(User));
+                if (!user) {
+                    perror("Memory allocation failed");
+                    fclose(file);
+                    return NULL;
+                }
+                memset(user, 0, sizeof(User));
+                strncpy(user->username, user_buff, sizeof(user->username) - 1);
+                fclose(file);
 
-//     User* u1 = get_user("user1");
-//     if (u1) {
-//         printf("Retrieved user: %s with password: %s\n", u1->username, u1->password);
-//         free(u1);
-//     } else {
-//         printf("User not found.\n");
-//     }
-//     return 0;
-// }
+                return user;
+            }
+        }
+    }
+}

@@ -177,12 +177,26 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
         else if (strcmp(cmd_name, "MSG") == 0)
         {
             printf("Processing MSG command with args: %s\n", cmd_args);
-            printf("Received message: %s\n", cmd_args);
-
-            char log_msg_format[] = "Received message: '%s'";
-            char log_msg[sizeof(log_msg_format) + strlen(cmd_args)];
-            sprintf(log_msg, log_msg_format, cmd_args);
+            char token[10], message[256];
+            sscanf(cmd_args, "token:%s %[^\n]", token, message);
+            
+            // 1. validate token
+            User* user = get_user_by_token(token);
+            if (user == NULL) {
+                printf("Invalid or expired token: %s\n", token);
+                char log_msg_format[] = "Failed MSG attempt with invalid token '(%s)' with message: %s";
+                char log_msg[sizeof(log_msg_format) + strlen(token)];
+                sprintf(log_msg, log_msg_format, token, message);
+                client_log(client_ip, port, log_msg, strlen(log_msg));
+                return EXIT_FAILURE;
+            }
+            
+            printf("User '%s' sent message: %s\n", user->username, message);
+            char log_msg_format[] = "Received message from user '(%s)': %s";
+            char log_msg[sizeof(log_msg_format) + strlen(user->username) + strlen(message)];
+            sprintf(log_msg, log_msg_format, user->username, message);
             client_log(client_ip, port, log_msg, strlen(log_msg));
+            free(user);
 
             char response_format[] = "OK: 1;SID: 1042; Message received";
             char response[sizeof(response_format) + strlen(cmd_args)];
