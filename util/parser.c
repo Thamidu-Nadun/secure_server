@@ -69,13 +69,18 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
                 client_log(client_ip, port, "Failed login attempt", strlen("Failed login attempt"));
                 return EXIT_FAILURE;
             }
+
             // 2. check with password,
             if (strcmp(user->password, password) != 0) {
                 printf("Incorrect password for user: %s\n", cmd_args);
-                client_log(client_ip, port, "Failed login attempt", strlen("Failed login attempt"));
+                char log_msg_format[] = "Failed login attempt for user '(%s)'";
+                char log_msg[sizeof(log_msg_format) + strlen(username)];
+                sprintf(log_msg, log_msg_format, username);
+                client_log(client_ip, port, log_msg, strlen(log_msg));
                 free(user);
                 return EXIT_FAILURE;
             }
+
             // 3. store token and return token to client
             FILE *file = fopen("tokens.txt", "a");
             if (file == NULL) {
@@ -83,6 +88,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
                 free(user);
                 return EXIT_FAILURE;
             }
+
             // 4. generate token, store in tokens.txt
             int chars = 6;
             char token_str[2* chars + 1];
@@ -91,8 +97,12 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             fclose(file);
             printf("Generated token for user '%s': %s\n", user->username, token_str);
             free(user);
+
             // 5. log the login event
-            client_log(client_ip, port, "User logged in successfully", strlen("User logged in successfully"));
+            char log_msg_format[] = "User logged in successfully '(%s)'";
+            char log_msg[sizeof(log_msg_format) + strlen(username)];
+            sprintf(log_msg, log_msg_format, username);
+            client_log(client_ip, port, log_msg, strlen(log_msg));
             return EXIT_SUCCESS;
         }
         else if (strcmp(cmd_name, "REGISTER") == 0)
@@ -103,11 +113,17 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             sscanf(cmd_args, "%s %s", username, password);
             if (add_user(username, password) == EXIT_SUCCESS) {
                 printf("User '%s' registered successfully.\n", username);
-                client_log(client_ip, port, "User registered successfully", strlen("User registered successfully"));
+                char log_msg_format[] = "User registered successfully '(%s)'";
+                char log_msg[sizeof(log_msg_format) + strlen(username)];
+                sprintf(log_msg, log_msg_format, username);
+                client_log(client_ip, port, log_msg, strlen(log_msg));
                 return EXIT_SUCCESS;
             } else {
                 printf("Failed to register user '%s'.\n", username);
-                client_log(client_ip, port, "Failed registration attempt", strlen("Failed registration attempt"));
+                char log_msg_format[] = "Failed registration attempt for user '(%s)'";
+                char log_msg[sizeof(log_msg_format) + strlen(username)];
+                sprintf(log_msg, log_msg_format, username);
+                client_log(client_ip, port, log_msg, strlen(log_msg));
                 return EXIT_FAILURE;
             }
         }
@@ -118,7 +134,10 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             sscanf(cmd_args, "%s", username);
             if (logout_user(username) != EXIT_SUCCESS) {
                 printf("Failed to logout user '%s'.\n", username);
-                client_log(client_ip, port, "Failed logout attempt", strlen("Failed logout attempt"));
+                char log_msg_format[] = "Failed logout attempt for user '(%s)'";
+                char log_msg[sizeof(log_msg_format) + strlen(username)];
+                sprintf(log_msg, log_msg_format, username);
+                client_log(client_ip, port, log_msg, strlen(log_msg));
                 return EXIT_FAILURE;
             }
             printf("User '%s' logged out successfully.\n", username);
@@ -130,7 +149,10 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             printf("Processing MSG command with args: %s\n", cmd_args);
             printf("Received message: %s\n", cmd_args);
 
-            client_log(client_ip, port, cmd_args, strlen(cmd_args));
+            char log_msg_format[] = "Received message: '%s'";
+            char log_msg[sizeof(log_msg_format) + strlen(cmd_args)];
+            sprintf(log_msg, log_msg_format, cmd_args);
+            client_log(client_ip, port, log_msg, strlen(log_msg));
             return EXIT_SUCCESS;
         }
         else

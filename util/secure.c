@@ -13,7 +13,7 @@ long mod_exp(long base, long exp, long mod) {
     return result;
 }
 
-void xor_cipher(char* data, const char key, int len){
+void xor_cipher(unsigned char* data, unsigned char key, int len){
     for (int i = 0; i < len; i++) {
         data[i] ^= key;
     }
@@ -25,6 +25,7 @@ void xor_cipher(char* data, const char key, int len){
  * This function is a cancellation point and therefore not marked with __THROW.
  */
 int secure_send(int sockfd, char* buff, int len, long shared_secret){
-    xor_cipher(buff, shared_secret, len);
+    unsigned char key = (unsigned char)(shared_secret & 0xFF); 
+    xor_cipher((unsigned char*)buff, shared_secret, len);
     return write(sockfd, buff, len);
 }

@@ -1,7 +1,8 @@
-#include "util/mem_util.c"
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <sys/wait.h>
+#include "util/mem_util.c"
 #include "util/parser.c"
 #include "util/dh.h"
 #include "util/secure.c"
@@ -9,6 +10,8 @@
 #define PORT 8000
 #define BUFFER_SIZE 1024
 #define KEY 6
+#define MAX_CLIENTS 100
+
 long exchange_dh(int client);
 
 int handle_client(int client, struct sockaddr_in client_addr){
@@ -54,11 +57,11 @@ int handle_client(int client, struct sockaddr_in client_addr){
     if (handler_result != EXIT_SUCCESS) {
         fprintf(stderr, "Error handling commands\n");
         free(buffer);
-        char error_msg[] = "Error processing commands";
+        char error_msg[] = "ERR: 0;SID: 1042; Error processing commands";
         secure_send(client, error_msg, strlen(error_msg), shared_secret);
         return EXIT_FAILURE;
     }
-    char msg[] = "Command processed successfully";
+    char msg[] = "OK: 1;SID: 1042; Command processed successfully";
     secure_send(client, msg, strlen(msg), shared_secret);
     free(buffer);
     
@@ -91,7 +94,6 @@ int main(){
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-
     printf("Server is listening on port %d...\n", PORT);
 
     while (1){
@@ -103,16 +105,17 @@ int main(){
             continue;
         }
 
-        if (fork() == 0){
+        if (fork() == 0) {
             close(sockfd);
             srand(time(NULL) ^ getpid()); // seed for token generation in child process
-            if (handle_client(clientfd, client_addr) != EXIT_SUCCESS)
-            {
+            if (handle_client(clientfd, client_addr) != EXIT_SUCCESS) {
                 fprintf(stderr, "Error handling client\n");
             }
             close(clientfd);
             exit(EXIT_SUCCESS);
         }
+        close(clientfd);
+        while (waitpid(-1, NULL, WNOHANG) > 0); // clean up child processes
     }
     close(sockfd);
     return EXIT_SUCCESS;
