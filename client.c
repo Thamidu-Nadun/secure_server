@@ -1,12 +1,16 @@
 #include "util/mem_util.c"
 #include <unistd.h>
 #include <arpa/inet.h>
+#include "util/dh.h"
+#include "util/secure.c"
 
 #define HOST "127.0.0.1"
 #define PORT 8000
 #define BUFFER_SIZE 1024
-
 #define HEADER "LEN: %d %s"
+#define KEY 4
+
+long exchange_dh(int client);
 
 int main(){
     /**
@@ -88,13 +92,20 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    // ** Diffie-Hellman key exchange ** //
+    long shared_secret = exchange_dh(sockfd);
+    if (shared_secret < 0) {
+        fprintf(stderr, "Error during Diffie-Hellman key exchange\n");
+        free(payload);
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
     char *buffer = allocate_mem(BUFFER_SIZE);
     int payload_len = strlen(payload);
 
     snprintf(buffer, BUFFER_SIZE, HEADER, payload_len, payload);
-
-    send(sockfd, buffer, strlen(buffer), 0);
+    secure_send(sockfd, buffer, strlen(buffer), shared_secret);
     shutdown(sockfd, SHUT_WR);
 
     memset(buffer, 0, BUFFER_SIZE);
@@ -106,9 +117,28 @@ int main(){
         exit(EXIT_FAILURE);
     }
     buffer[bytes_recv] = '\0';
+    xor_cipher(buffer, shared_secret, strlen(buffer));
     printf("Server response: %s\n", buffer);
 
     free(buffer);
     close(sockfd);
     return EXIT_SUCCESS;
+}
+
+long exchange_dh(int client){
+    long pub = mod_exp(G, KEY, P);
+
+    // ** send pub key to server ** //
+    send(client, &pub, sizeof(pub), 0);
+
+    // ** recv server's pub key ** //
+    long server_pub;
+    if (recv(client, &server_pub, sizeof(server_pub), 0) < 0) {
+        perror("error receiving server's public key");
+        return EXIT_FAILURE;
+    }
+
+    // ** compute shared secret ** //
+    long shared_secret = mod_exp(server_pub, KEY, P);
+    return shared_secret;
 }

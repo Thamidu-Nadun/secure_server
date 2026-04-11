@@ -1,18 +1,29 @@
 #include "util/mem_util.c"
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include "util/parser.c"
+#include "util/dh.h"
+#include "util/secure.c"
 
 #define PORT 8000
 #define BUFFER_SIZE 1024
-
+#define KEY 6
+long exchange_dh(int client);
 
 int handle_client(int client, struct sockaddr_in client_addr){
-
+    // ** Client connected ** //
     char client_ip[INET_ADDRSTRLEN];
     u_int16_t port = htons(client_addr.sin_port);
     inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
     printf("Client connected: %s:%d\n", client_ip, ntohs(client_addr.sin_port));
+
+    // ** Diffie-Hellman key exchange ** //
+    long shared_secret = exchange_dh(client);
+    if (shared_secret < 0) {
+        fprintf(stderr, "Error during Diffie-Hellman key exchange\n");
+        return EXIT_FAILURE;
+    }
 
     size_t capacity = BUFFER_SIZE, total = 0;
     char* buffer = allocate_mem(capacity);
@@ -36,6 +47,7 @@ int handle_client(int client, struct sockaddr_in client_addr){
 
     buffer[total] = '\0';
     printf("Received message: %s\n", buffer);
+    xor_cipher(buffer, shared_secret, strlen(buffer));
 
     Command* commands =  parser(buffer);
     int handler_result = command_handler(commands, client_ip, port);
@@ -43,17 +55,20 @@ int handle_client(int client, struct sockaddr_in client_addr){
         fprintf(stderr, "Error handling commands\n");
         free(buffer);
         char error_msg[] = "Error processing commands";
-        send(client, error_msg, strlen(error_msg), 0);
+        secure_send(client, error_msg, strlen(error_msg), shared_secret);
         return EXIT_FAILURE;
     }
     char msg[] = "Command processed successfully";
-    send(client, msg, strlen(msg), 0);
+    secure_send(client, msg, strlen(msg), shared_secret);
     free(buffer);
     
     return EXIT_SUCCESS;
 }
 
 int main(){
+    srand(time(NULL)); // seed for token generation
+
+    // socket setup
     struct sockaddr_in srv;
     srv.sin_family = AF_INET;
     srv.sin_port = htons(PORT);
@@ -90,7 +105,9 @@ int main(){
 
         if (fork() == 0){
             close(sockfd);
-            if (handle_client(clientfd, client_addr) != EXIT_SUCCESS) {
+            srand(time(NULL) ^ getpid()); // seed for token generation in child process
+            if (handle_client(clientfd, client_addr) != EXIT_SUCCESS)
+            {
                 fprintf(stderr, "Error handling client\n");
             }
             close(clientfd);
@@ -99,4 +116,26 @@ int main(){
     }
     close(sockfd);
     return EXIT_SUCCESS;
+}
+
+long exchange_dh(int client){
+    long pub = mod_exp(G, KEY, P);
+
+    // recv client's public key
+    long client_pub;
+    if (recv(client, &client_pub, sizeof(client_pub), 0) < 0) {
+        perror("Error receiving client's public key");
+        return  EXIT_FAILURE;
+    }
+
+    // send server's public key
+    if (send(client, &pub, sizeof(pub), 0) < 0) {
+        perror("Error sending server's public key");
+        return EXIT_FAILURE;
+    }
+
+    // compute shared secret
+    long shared_secret = mod_exp(client_pub, KEY, P);
+    printf("Shared secret: %ld\n", shared_secret);
+    return shared_secret;
 }
