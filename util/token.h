@@ -1,3 +1,6 @@
+#ifndef TOKEN_H
+#define TOKEN_H
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,3 +10,5 @@ void generate_token(char* cp, unsigned long size) {
     }
     cp[size - 1] = '\0';
 }
+
+#endif

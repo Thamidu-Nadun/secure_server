@@ -18,7 +18,8 @@ enum ServerResponseTypes{
 
 struct User{
     char username[256];
-    char password[256];
+    char salt[256];
+    char password[65];
 } typedef User;
 
 typedef struct {

@@ -5,6 +5,7 @@
 #include "db.c"
 #include "logger.c"
 #include "token.h"
+#include "secure.c"
 
 int secure_send(int sockfd, char *buff, int len, long shared_secret);
 
@@ -73,7 +74,13 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
             }
 
             // 2. check with password,
-            if (strcmp(user->password, password) != 0) {
+            char password_hash[65];
+            create_password_hash(password, user->salt, password_hash);
+
+            printf("Comparing password hash: %s with stored hash: %s\n", password_hash, user->password);
+            printf("Salt used for hashing: %s\n", user->salt);
+
+            if (strcmp(user->password, password_hash) != 0) {
                 printf("Incorrect password for user: %s\n", cmd_args);
                 char log_msg_format[] = "Failed login attempt for user '(%s)'";
                 char log_msg[sizeof(log_msg_format) + strlen(username)];

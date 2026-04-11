@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "../types/general_types.h"
+#include "secure.c"
+#include "token.h"
 
 #define DB_PATH "users.txt"
 
@@ -48,7 +50,13 @@ int add_user(const char* username, const char* password) {
         fclose(file);
         return EXIT_FAILURE;
     }
-    fprintf(file, "%s:%s\n", username, password);
+    int chars = 6;
+    char salt[chars + 1];
+    generate_token(salt, sizeof(salt));
+
+    char password_hash[65];
+    create_password_hash(password, salt, password_hash);
+    fprintf(file, "%s:%s:%s\n", username, salt, password_hash);
     printf("User '%s' added successfully.\n", username);
     unlock_db(fileno(file)); // Unlock the file
     fclose(file);
@@ -70,9 +78,9 @@ User* get_user(const char* username){
     char line[256];
     
     while (fgets(line, sizeof(line), file)) {
-        char user_buff[256], pass_buff[256];
+        char user_buff[256], salt_buff[256], pass_buff[256];
 
-        if (sscanf(line, "%[^:]:%[^\n]", user_buff, pass_buff) == 2) {
+        if (sscanf(line, "%[^:]:%[^:]:%[^\n]", user_buff, salt_buff, pass_buff) == 3) {
             if (strcmp(user_buff, username) == 0){
                 User* user = malloc(sizeof(User));
                 if (!user) {
@@ -84,6 +92,7 @@ User* get_user(const char* username){
                 memset(user, 0, sizeof(User));
 
                 strncpy(user->username, user_buff, sizeof(user->username) - 1);
+                strncpy(user->salt, salt_buff, sizeof(user->salt) - 1);
                 strncpy(user->password, pass_buff, sizeof(user->password) - 1);
 
                 fclose(file);

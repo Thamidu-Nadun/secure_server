@@ -1,6 +1,2 @@
-john:1234
-admin:admin
-nadun:nadun123
-dh:123
-alex:mee
-tn:67
+admin:13b:a38df7eb8caad47bdcd014bf6627433bc8e5219d29c8aaeda98771e5d99a5fb5
+alex:69cfc5:67034794e35758f4dcb96294b10eaf359af53688320b8dcb8a957f2d9a054b1e
