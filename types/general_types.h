@@ -21,4 +21,10 @@ struct User{
     char password[256];
 } typedef User;
 
+typedef struct {
+    char username[256];
+    char token[256];
+    time_t expiry;
+} session_t;
+
 #endif

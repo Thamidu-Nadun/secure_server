@@ -6,6 +6,8 @@
 #include "logger.c"
 #include "token.h"
 
+int secure_send(int sockfd, char *buff, int len, long shared_secret);
+
 /**
  * This function parse one line string and if there is a command, 
  * command and args will be returned. Otherwise, it will return NULL.
@@ -46,7 +48,7 @@ Command* parser(char* str_ptr){
     return commands;
 }
 
-int command_handler(Command* commands, char* client_ip, uint16_t port){
+int command_handler(Command* commands, char* client_ip, uint16_t port, int clientfd, long shared_secret){
     for (int i = 0; i < 5; i++){
         if (commands[i].command_name[0] == 0) continue; // empty command
 
@@ -90,10 +92,15 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             }
 
             // 4. generate token, store in tokens.txt
-            int chars = 6;
+            int chars = 3;
             char token_str[2* chars + 1];
             generate_token(token_str, sizeof(token_str));
-            fprintf(file, "%s:%s\n", user->username, token_str);
+
+            // 4.1 generate expiry time
+            int expiry_min = 5;
+            time_t now = time(NULL);
+            time_t expiry_time = now + expiry_min * 60;
+            fprintf(file, "%s:%s:%ld\n", user->username, token_str, expiry_time);
             fclose(file);
             printf("Generated token for user '%s': %s\n", user->username, token_str);
             free(user);
@@ -103,6 +110,12 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             char log_msg[sizeof(log_msg_format) + strlen(username)];
             sprintf(log_msg, log_msg_format, username);
             client_log(client_ip, port, log_msg, strlen(log_msg));
+
+            // 6. send token back to client
+            char response_format[] = "OK: 1;SID: 1042; TOKEN: %s";
+            char response[sizeof(response_format) + strlen(token_str)];
+            sprintf(response, response_format, token_str);
+            secure_send(clientfd, response, strlen(response), shared_secret);
             return EXIT_SUCCESS;
         }
         else if (strcmp(cmd_name, "REGISTER") == 0)
@@ -117,6 +130,11 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
                 char log_msg[sizeof(log_msg_format) + strlen(username)];
                 sprintf(log_msg, log_msg_format, username);
                 client_log(client_ip, port, log_msg, strlen(log_msg));
+
+                char response_format[] = "OK: 1;SID: 1042; User '%s' registered successfully";
+                char response[sizeof(response_format) + strlen(username)];
+                sprintf(response, response_format, username);
+                secure_send(clientfd, response, strlen(response), shared_secret);
                 return EXIT_SUCCESS;
             } else {
                 printf("Failed to register user '%s'.\n", username);
@@ -142,6 +160,11 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             }
             printf("User '%s' logged out successfully.\n", username);
             client_log(client_ip, port, "User logged out successfully", strlen("User logged out successfully"));
+
+            char response_format[] = "OK: 1;SID: 1042; User '%s' logged out successfully";
+            char response[sizeof(response_format) + strlen(username)];
+            sprintf(response, response_format, username);
+            secure_send(clientfd, response, strlen(response), shared_secret);
             return EXIT_SUCCESS;
         }
         else if (strcmp(cmd_name, "MSG") == 0)
@@ -153,6 +176,11 @@ int command_handler(Command* commands, char* client_ip, uint16_t port){
             char log_msg[sizeof(log_msg_format) + strlen(cmd_args)];
             sprintf(log_msg, log_msg_format, cmd_args);
             client_log(client_ip, port, log_msg, strlen(log_msg));
+
+            char response_format[] = "OK: 1;SID: 1042; Message received";
+            char response[sizeof(response_format) + strlen(cmd_args)];
+            sprintf(response, response_format, cmd_args);
+            secure_send(clientfd, response, strlen(response), shared_secret);
             return EXIT_SUCCESS;
         }
         else

@@ -53,7 +53,7 @@ int handle_client(int client, struct sockaddr_in client_addr){
     xor_cipher(buffer, shared_secret, strlen(buffer));
 
     Command* commands =  parser(buffer);
-    int handler_result = command_handler(commands, client_ip, port);
+    int handler_result = command_handler(commands, client_ip, port, client, shared_secret);
     if (handler_result != EXIT_SUCCESS) {
         fprintf(stderr, "Error handling commands\n");
         free(buffer);
@@ -61,8 +61,6 @@ int handle_client(int client, struct sockaddr_in client_addr){
         secure_send(client, error_msg, strlen(error_msg), shared_secret);
         return EXIT_FAILURE;
     }
-    char msg[] = "OK: 1;SID: 1042; Command processed successfully";
-    secure_send(client, msg, strlen(msg), shared_secret);
     free(buffer);
     
     return EXIT_SUCCESS;

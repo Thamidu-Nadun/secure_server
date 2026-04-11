@@ -31,10 +31,10 @@ def exchange_dh(sock):
     """Perform Diffie-Hellman key exchange"""
     pub = mod_exp(G, KEY, P)
     
-    # Send public key to server (8 bytes, little-endian to match C's native byte order)
+    # Send pub key to server
     sock.send(pub.to_bytes(8, byteorder='little', signed=False))
     
-    # Receive server's public key
+    # receive server's pub key
     server_pub_bytes = sock.recv(8)
     if not server_pub_bytes:
         raise Exception("Failed to receive public key from server")
