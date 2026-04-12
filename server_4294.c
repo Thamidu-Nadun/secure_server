@@ -7,7 +7,7 @@
 #include "util/dh.h"
 #include "util/secure.c"
 
-#define PORT 8000
+#define PORT 50294
 #define BUFFER_SIZE 1024
 #define KEY 6
 #define MAX_CLIENTS 100

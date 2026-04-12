@@ -5,7 +5,7 @@
 #include "util/secure.c"
 
 #define HOST "127.0.0.1"
-#define PORT 8000
+#define PORT 50294
 #define BUFFER_SIZE 1024
 #define HEADER "LEN: %d %s"
 #define KEY 4

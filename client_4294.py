@@ -2,7 +2,7 @@ import socket
 import sys
 
 HOST = '127.0.0.1'
-PORT = 8000
+PORT = 50294
 BUFFER_SIZE = 1024
 HEADER = "LEN: %d %s"
 KEY = 4
@@ -53,6 +53,15 @@ def secure_send(sock, data, shared_secret):
     sock.send(bytes(encrypted_data))
 
 def main():
+    # Socket setup
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((HOST, PORT))
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+        
+    # User interaction
     print("Choose an option:")
     print("0: LOGIN")
     print("1: REGISTER")
@@ -100,14 +109,6 @@ def main():
         payload = f'MSG: token:{token} {message}'
     else:
         print("Invalid option")
-        sys.exit(1)
-    
-    # Socket setup
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((HOST, PORT))
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     
     # Perform Diffie-Hellman key exchange

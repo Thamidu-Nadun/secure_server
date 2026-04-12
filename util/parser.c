@@ -69,7 +69,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
             User* user = get_user(username);
             if (user == NULL) {
                 printf("User not found: %s\n", cmd_args);
-                client_log(client_ip, port, "Failed login attempt", strlen("Failed login attempt"));
+                server_log(client_ip, port, "Failed login attempt", strlen("Failed login attempt"));
                 return EXIT_FAILURE;
             }
 
@@ -85,7 +85,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
                 char log_msg_format[] = "Failed login attempt for user '(%s)'";
                 char log_msg[sizeof(log_msg_format) + strlen(username)];
                 sprintf(log_msg, log_msg_format, username);
-                client_log(client_ip, port, log_msg, strlen(log_msg));
+                server_log(client_ip, port, log_msg, strlen(log_msg));
                 free(user);
                 return EXIT_FAILURE;
             }
@@ -116,7 +116,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
             char log_msg_format[] = "User logged in successfully '(%s)'";
             char log_msg[sizeof(log_msg_format) + strlen(username)];
             sprintf(log_msg, log_msg_format, username);
-            client_log(client_ip, port, log_msg, strlen(log_msg));
+            server_log(client_ip, port, log_msg, strlen(log_msg));
 
             // 6. send token back to client
             char response_format[] = "OK: 1;SID: 1042; TOKEN: %s";
@@ -136,7 +136,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
                 char log_msg_format[] = "User registered successfully '(%s)'";
                 char log_msg[sizeof(log_msg_format) + strlen(username)];
                 sprintf(log_msg, log_msg_format, username);
-                client_log(client_ip, port, log_msg, strlen(log_msg));
+                server_log(client_ip, port, log_msg, strlen(log_msg));
 
                 char response_format[] = "OK: 1;SID: 1042; User '%s' registered successfully";
                 char response[sizeof(response_format) + strlen(username)];
@@ -148,7 +148,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
                 char log_msg_format[] = "Failed registration attempt for user '(%s)'";
                 char log_msg[sizeof(log_msg_format) + strlen(username)];
                 sprintf(log_msg, log_msg_format, username);
-                client_log(client_ip, port, log_msg, strlen(log_msg));
+                server_log(client_ip, port, log_msg, strlen(log_msg));
                 return EXIT_FAILURE;
             }
         }
@@ -164,7 +164,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
                 char log_msg_format[] = "Failed logout attempt for user '(%s)'";
                 char log_msg[sizeof(log_msg_format) + strlen(username)];
                 sprintf(log_msg, log_msg_format, username);
-                client_log(client_ip, port, log_msg, strlen(log_msg));
+                server_log(client_ip, port, log_msg, strlen(log_msg));
                 return EXIT_FAILURE;
             }
             printf("User '%s' logged out successfully.\n", username);
@@ -173,7 +173,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
             char log_msg_format[] = "User logged out successfully '(%s)'";
             char log_msg[sizeof(log_msg_format) + strlen(username)];
             sprintf(log_msg, log_msg_format, username);
-            client_log(client_ip, port, log_msg, strlen(log_msg));
+            server_log(client_ip, port, log_msg, strlen(log_msg));
 
             // 3. send response to client
             char response_format[] = "OK: 1;SID: 1042; User '%s' logged out successfully";
@@ -195,7 +195,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
                 char log_msg_format[] = "Failed MSG attempt with invalid token '(%s)' with message: %s";
                 char log_msg[sizeof(log_msg_format) + strlen(token)];
                 sprintf(log_msg, log_msg_format, token, message);
-                client_log(client_ip, port, log_msg, strlen(log_msg));
+                server_log(client_ip, port, log_msg, strlen(log_msg));
                 return EXIT_FAILURE;
             }
             
@@ -203,7 +203,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
             char log_msg_format[] = "Received message from user '(%s)': %s";
             char log_msg[sizeof(log_msg_format) + strlen(user->username) + strlen(message)];
             sprintf(log_msg, log_msg_format, user->username, message);
-            client_log(client_ip, port, log_msg, strlen(log_msg));
+            client_log(client_ip, port, user->username, log_msg, strlen(log_msg));
             free(user);
 
             char response_format[] = "OK: 1;SID: 1042; Message received";
@@ -215,7 +215,7 @@ int command_handler(Command* commands, char* client_ip, uint16_t port, int clien
         else
         {
             printf("Unknown command: %s\n", cmd_name);
-            client_log(client_ip, port, "Unknown command received", strlen("Unknown command received"));
+            server_log(client_ip, port, "Unknown command received", strlen("Unknown command received"));
             return EXIT_FAILURE;
         }
     }

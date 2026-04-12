@@ -4,7 +4,7 @@ CFLAGS = -lssl -lcrypto
 
 all: banner
 	@echo "Building server and client..."
-	@gcc server.c -o dist/server $(CFLAGS)
+	@gcc server_4294.c -o dist/server $(CFLAGS)
 	@gcc client.c -o dist/client $(CFLAGS)
 	@echo "Compilation complete."
 
