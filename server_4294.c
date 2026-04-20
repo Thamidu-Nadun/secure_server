@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include "util/mem_util.c"
 #include "util/parser.c"
 #include "util/dh.h"
@@ -13,6 +14,10 @@
 #define MAX_CLIENTS 100
 
 long exchange_dh(int client);
+
+void sigchld_handler(int signum) {
+    while (waitpid(-1, NULL, WNOHANG) > 0);
+}
 
 int handle_client(int client, struct sockaddr_in client_addr){
     // ** Client connected ** //
@@ -68,6 +73,7 @@ int handle_client(int client, struct sockaddr_in client_addr){
 
 int main(){
     srand(time(NULL)); // seed for token generation
+    signal(SIGCHLD, sigchld_handler); // register signal handler to clean up child processes
 
     // socket setup
     struct sockaddr_in srv;
@@ -113,7 +119,6 @@ int main(){
             exit(EXIT_SUCCESS);
         }
         close(clientfd);
-        while (waitpid(-1, NULL, WNOHANG) > 0); // clean up child processes
     }
     close(sockfd);
     return EXIT_SUCCESS;
